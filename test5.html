@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistant RIBIÈRE - Analyse Documentaire Interactive</title>
+    
+    <style>
+        :root {
+            /* Couleurs basées sur le logo RIBIÈRE */
+            --primary-dark-grey: #4F5B62; 
+            --primary-light-grey: #D3D6D9; 
+            --accent-yellow: #FDC700; 
+            
+            --secondary-background: #f0f2f5; 
+            
+            --user-bubble-color: #e6f7ff; 
+            --bot-bubble-color: #EFEFEF; 
+            --text-color: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--secondary-background);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px; 
+            padding: 20px;
+        }
+
+        /* Styles Généraux et Utility Classes */
+        .active { display: block !important; }
+        .hidden { display: none !important; }
+
+        /* HEADER PARTAGÉ POUR FORM ET CHAT */
+        .page-header {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            background: linear-gradient(90deg, var(--primary-dark-grey) 0%, #3a4146 100%); 
+            color: white;
+            border-radius: 12px 12px 0 0; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        .page-header.form-header {
+            background-color: transparent; 
+            background-image: none; 
+            color: var(--primary-dark-grey);
+            justify-content: flex-start;
+            padding: 20px 40px 0 40px; 
+            border-radius: 0;
+            box-shadow: none;
+        }
+        .page-header .logo {
+            height: 50px; 
+            width: auto; 
+            margin-right: 15px;
+            margin-left: -50px; 
+        }
+        
+        #chat-page .page-header .logo {
+            height: 35px; 
+            margin-left: 0; 
+        }
+
+        .page-header .title {
+            font-size: 1.2rem;
+            margin: 0;
+            flex-grow: 1; 
+        }
+        .page-header .user-info {
+            font-size: 0.9rem;
+            margin-left: auto;
+        }
+
+        /* PAGE FORMULAIRE */
+        #form-page {
+            background: #fff;
+            padding: 0 40px 40px 40px; 
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            text-align: center; 
+        }
+
+        .header-intro { padding-top: 40px; text-align: center; }
+        .header-intro .icon { font-size: 3rem; display: block; margin-bottom: 10px; }
+        .header-intro .title { color: var(--primary-dark-grey); font-size: 2.2rem; margin: 0; }
+        
+        /* MODIFIÉ: Ajout du dégradé gris pour l'effet "gris fondu" */
+        .intro-text {
+            background: linear-gradient(180deg, #fcfcfc 0%, #e8e8e8 100%); /* Nouveau fond gris fondu */
+            border: 1px solid #ddd; 
+            padding: 15px;
+            border-radius: 8px;
+            margin: 30px 0;
+            font-style: italic;
+            color: var(--text-color); 
+            text-align: center;
+        }
+        
+        /* Alignement du formulaire à gauche (demandé précédemment) */
+        .form-section {
+            text-align: left;
+        }
+
+        #user-form input, #user-form button {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0 15px 0;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            box-sizing: border-box; 
+        }
+
+        #user-form button {
+            background: linear-gradient(180deg, var(--accent-yellow) 0%, #e0b400 100%); 
+            color: var(--primary-dark-grey); 
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            transition: background-color 0.2s;
+            margin-top: 20px;
+        }
+        #user-form button:hover { background: #e0b400; }
+        .footer-copyright { margin-top: 40px; font-size: 0.8rem; color: #aaa; text-align: center; }
+
+
+        /* NOUVEAU: Wrapper pour le Chat et le Document Panel */
+        #chat-interface-wrapper {
+            height: 80vh; 
+            display: flex; 
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        #chat-interface-wrapper.hidden { display: none !important; }
+
+        /* PAGE CHAT (dans le wrapper) */
+        #chat-page {
+            flex-grow: 1; 
+            min-width: 450px; 
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            border-radius: 0; 
+            box-shadow: none;
+            overflow: hidden;
+        }
+
+        .chat-actions {
+            display: flex;
+            gap: 10px;
+            padding: 15px 20px 5px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        /* Style des boutons et de la nouvelle étiquette d'upload */
+        .chat-actions button,
+        .chat-actions .chat-action-button { 
+            padding: 8px 15px;
+            border: 1px solid var(--primary-dark-grey);
+            background: white;
+            color: var(--primary-dark-grey);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            width: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .chat-actions button:hover,
+        .chat-actions .chat-action-button:hover {
+            background-color: var(--primary-dark-grey);
+            color: white;
+        }
+
+
+        .chat-window {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            max-width: 80%;
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 18px;
+            line-height: 1.4;
+        }
+        .message.user {
+            background: var(--user-bubble-color);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .message.bot {
+            background: var(--bot-bubble-color);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-input-area {
+            display: flex;
+            padding: 10px 20px;
+            border-top: 1px solid #eee;
+            align-items: center; 
+        }
+
+        #chat-input {
+            flex-grow: 1;
+            margin: 0;
+            border-radius: 20px 0 0 20px; 
+            padding: 12px;
+            border: 1px solid #ddd;
+        }
+        
+        #btn-send {
+            width: 100px;
+            margin: 0;
+            border-radius: 0 20px 20px 0;
+            background: linear-gradient(90deg, var(--primary-dark-grey) 0%, #3a4146 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        .hidden-file-input {
+            display: none !important;
+        }
+
+        /* Panneau de Document Latéral */
+        #document-panel {
+            width: 0; 
+            height: 100%;
+            overflow: hidden;
+            background: #fcfcfc;
+            border-left: 1px solid #ddd; 
+            transition: width 0.3s ease-in-out; 
+            
+            display: flex; 
+            flex-direction: column;
+            flex-shrink: 0; 
+        }
+        
+        #document-panel.open {
+            width: 400px; 
+            overflow-y: hidden; 
+        }
+
+        .document-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #ddd;
+            background-color: #f7f7f7;
+            flex-shrink: 0;
+        }
+        .document-viewer {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .close-btn {
+            cursor: pointer;
+            font-size: 1.5rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div id="form-page" class="active">
+            <header class="page-header form-header">
+                <img src="./logo-ribiere-long.png" alt="Logo RIBIÈRE" class="logo">
+            </header>
+            <div class="header-intro">
+                <span class="icon">⚙️</span> <h1 class="title">Analyse Documentaire Interactive</h1>
+                <p class="subtitle">
+                    Exploration et Synthèse des Contenus Clés pour la prise de décision.
+                </p>
+                <p class="author">Guillaume PEYPE pour RIBIÈRE</p>
+            </div>
+
+            <div class="intro-text">
+                <span class="emoji">💡</span>
+                <p>
+                    Maximisez votre temps ! Au lieu de parcourir l'intégralité de la note stratégique RIBIÈRE,
+                    utilisez cet assistant intelligent pour obtenir des réponses immédiates à vos questions.
+                </p>
+            </div>
+
+            <div class="form-section">
+                <h2>Accès à la Note et à l'Assistant</h2>
+                <p>Veuillez renseigner vos informations pour accéder au document et à l'interface de conversation.</p>
+                <form id="user-form">
+                    <label for="prenom">Prénom *</label>
+                    <input type="text" id="prenom" required>
+                    
+                    <label for="email">Adresse e-mail professionnelle *</label>
+                    <input type="email" id="email" required>
+                    
+                    <button type="submit">
+                        Accéder à l'Assistant →
+                    </button>
+                </form>
+            </div>
+            <div class="footer-copyright">
+                Guillaume PEYPE (c) - 2025
+            </div>
+        </div>
+
+        <div id="chat-interface-wrapper" class="hidden">
+            
+            <div id="chat-page">
+                <header class="page-header">
+                    <img src="./logo-ribiere-long.png" alt="Logo RIBIÈRE" class="logo">
+                    <h2 class="title">Analyse Documentaire Interactive</h2>
+                    <span class="user-info">Bienvenue, <span id="user-name"></span></span>
+                </header>
+
+                <div class="chat-actions">
+                    <button id="btn-me-connaitre">👋 Présentation de l'Auteur</button> 
+                    <label for="chat-file-upload" id="upload-action-label" class="chat-action-button">
+                        📎 Déposer un Document
+                    </label>
+                    <input type="file" id="chat-file-upload" accept=".pdf,.doc,.docx,.txt" multiple class="hidden-file-input">
+	            <button id="btn-consulter-doc" class="chat-action-button">
+                        📖 Consulter le Document
+                    </button>
+                </div>
+
+                <div id="chat-messages" class="chat-window">
+                    </div>
+
+                <div class="chat-input-area">
+                    <input type="text" id="chat-input" placeholder="Saisissez votre question...">
+                    <button id="btn-send">Soumettre ↗</button>
+                </div>
+            </div>
+
+            <div id="document-panel" class="document-panel">
+                <header class="document-panel-header">
+                    <h3>📄 Note Stratégique RIBIÈRE - Consultation</h3>
+                    <span id="close-panel" class="close-btn">×</span>
+                </header>
+                <div class="document-viewer">
+                    <h2>Note stratégique : Analyse Documentaire Interactive</h2>
+                    <p>
+                        Ceci est un aperçu du contenu principal de la note. Utilisez ce panneau pour lire votre document
+                        tout en conversant avec l'assistant à gauche.
+                    </p>
+                    <p>
+                        **Titre 1: Introduction à la Stratégie**
+                        Le rapport commence par une analyse macroéconomique du secteur de la construction...
+                    </p>
+                    <p>
+                        **Titre 2: Leviers d'Efficience**
+                        L'accent est mis sur l'optimisation des processus d'étude de prix grâce à l'IA et aux outils de modélisation 3D/BIM.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Sélecteurs d'éléments
+        const formPage = document.getElementById("form-page");
+        const chatInterfaceWrapper = document.getElementById("chat-interface-wrapper"); 
+        const documentPanel = document.getElementById("document-panel"); 
+
+        const userNameSpan = document.getElementById("user-name");
+        const chatMessages = document.getElementById("chat-messages");
+        const chatInput = document.getElementById("chat-input");
+
+        // Fichier et boutons d'action
+        const chatFileInput = document.getElementById("chat-file-upload"); 
+        const uploadActionLabel = document.getElementById("upload-action-label"); 
+        const btnConsulterDoc = document.getElementById("btn-consulter-doc"); // NOUVEAU SÉLECTEUR
+        const btnSend = document.getElementById("btn-send");
+        const closePanelBtn = document.getElementById("close-panel"); 
+
+
+        // Fonction utilitaire pour ajouter les bulles de message
+        function addMessage(content, role) {
+            const wrapper = document.createElement("div");
+            wrapper.className = `message ${role}`;
+            
+            const messageContent = document.createElement("div");
+            messageContent.className = "message-content";
+            messageContent.innerHTML = content; 
+
+            wrapper.appendChild(messageContent);
+            chatMessages.appendChild(wrapper);
+            
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Fonction : Gestion de l'upload de fichier
+        if (chatFileInput) {
+            chatFileInput.addEventListener("change", handleFileUpload);
+        }
+
+        function handleFileUpload() {
+            const files = chatFileInput.files;
+            if (files.length > 0) {
+                const fileNames = Array.from(files).map(f => f.name).join(', ');
+                
+                let uploadMessage = `✅ **${files.length} document(s) chargé(s) :** ${fileNames}.`;
+                uploadMessage += `<br><br>Vous pouvez maintenant poser vos questions concernant le contenu de ces fichiers.`;
+                
+                addMessage(uploadMessage, "bot");
+                
+                // Ouvre le panneau lors du dépôt d'un document réel
+                documentPanel.classList.add("open"); 
+            }
+            chatFileInput.value = null; 
+        }
+        
+        // Logique : Ouverture du Panneau Latéral via le nouveau bouton "Consulter"
+        if (btnConsulterDoc) {
+            btnConsulterDoc.addEventListener("click", () => {
+                documentPanel.classList.add("open");
+            });
+        }
+
+
+        // Logique : Passage du Formulaire au Chat
+        document.getElementById("user-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+            
+            const prenom = document.getElementById("prenom").value.trim();
+            if (!prenom) return;
+            
+            userNameSpan.textContent = prenom;
+
+            formPage.classList.remove("active");
+            formPage.classList.add("hidden");
+            
+            chatInterfaceWrapper.classList.remove("hidden");
+            chatInterfaceWrapper.classList.add("active");
+            
+            chatInput.focus();
+
+            let welcomeMessage = `
+                Bonjour ${prenom} ! Je suis votre assistant virtuel, conçu pour vous accompagner dans l'exploration de la note stratégique
+                **"Analyse Documentaire Interactive"** rédigée par Guillaume PEYPE pour RIBIÈRE.
+                <br><br>
+                N'hésitez pas à soumettre vos requêtes.
+                <br><br>
+                Vous pouvez utiliser le bouton **📖 Consulter le Document** pour afficher la note stratégique ou **📎 Déposer un Document** pour analyser un autre fichier.
+            `;
+            
+            addMessage(welcomeMessage, "bot");
+        });
+
+
+        // Logique : Envoi de Message au Serveur (RAG)
+        btnSend.addEventListener("click", sendMessage);
+        chatInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            addMessage(text, "user");
+            chatInput.value = "";
+
+            const prenom = document.getElementById("prenom").value.trim();
+            const email = document.getElementById("email").value.trim();
+            
+            try {
+                // SIMULATION D'APPEL BACKEND RAG
+                const res = await fetch("/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        message: text,
+                        user: { prenom, email }
+                    })
+                });
+
+                const data = await res.json();
+                
+                addMessage(data.answer || data.message || "Aucune réponse générée par l'assistant.", "bot");
+            } catch (err) {
+                console.error("Erreur serveur:", err);
+                addMessage("Une erreur est survenue lors de l'appel au service. Veuillez vérifier la connexion au serveur RAG.", "bot");
+            }
+        }
+
+
+        // Logique : Fermeture du Panneau Latéral
+        if (closePanelBtn) {
+            closePanelBtn.addEventListener("click", () => {
+                documentPanel.classList.remove("open");
+            });
+        }
+        
+        // Logique : Bouton Me Connaitre
+        document.getElementById("btn-me-connaitre").addEventListener("click", () => {
+            addMessage("Qui est Guillaume PEYPE ?", "user");
+            setTimeout(() => {
+                addMessage("Bonjour, je m'appelle Guillaume Peype j'ai 22 ans, je suis actuellement engagé dans un cursus Ingénieur par alternance au sein de l'IMT Mines Alès. Je poursuis cette formation en tant qu'alternant en étude de prix chez RIBIÈRE.", "bot");
+            }, 500);
+        });
+    </script>
+</body>
+</html>
